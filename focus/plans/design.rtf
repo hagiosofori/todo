@@ -1,0 +1,238 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2511
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww25400\viewh16000\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs28 \cf0 -> complete algorithms & design for add/edit a task. Incorporate methods & objects from down below\
+\
+-> design mockups for the interface map\
+\
+1. Add a task, Edit\
+-> use another task as a base?\
+	-> if yes, select the task\
+\
+-> name of task\
+\
+-> importance of task, by selecting a value between 1 & 5\
+	-> 1 - least important\
+	-> 2 - a bit important\
+	-> 3 - quite important\
+	-> 4 - very important\
+	-> 5 - my life depends on this\
+\
+-> urgency of task, by selecting due time. \
+	-> today\
+	-> x days\'92 time\
+	-> x weeks\'92 time\
+	-> x months\'92 time\
+	-> x years\'92 time\
+\
+\
+-> preferred time range (if any), else it\'92ll be placed wherever makes the most sense.\
+	-> if has parent task, and preferred time range isn\'92t within parent task, fail to set preferred time\
+	\
+	-> set preferred time	\
+	-> time range expressed within the app as a pair of numbers between 0 and 1440\
+\
+	\
+-> is a habit?\
+	-> if yes, select regularity\
+		-> on x days each week, (x could be Monday - Sunday)\
+		-> every x days\
+		-> on x weeks each month (x could be 1st - 4th)\
+		-> every x weeks\
+		-> on x months each year (x could be Jan - Dec)\
+		-> every x months\
+		-> every x years\
+\
+-> label \
+	-> should be able to add a new label\
+	-> dropdown, select from available labels. No limit to possible number of selections \
+		-> available labels include\
+			-> Spirit\
+			-> Skill\
+			-> Health\
+			-> Wealth\
+			-> Brand\
+			-> Family\
+\
+\
+\
+\
+\
+2. Auto-scheduler\
+\
+CALENDAR OBJECT\
+vars:\
+-> calendar, of type LinkedList of ScheduledTasks,  \
+-> firstScheduledTask\
+-> lastScheduledTask\
+-> unscheduledTasks : [<Task>]\
+-> END_OF_DAY: int\
+-> MIN_SLOT_SIZE_FOR_LARGE_TASKS: int\
+-> BREAK_LENGTH: int\
+\
+\
+methods:\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\fs26 \cf0 -> scheduleTask(task)\
+	-> let result = findSlot(task)\
+	-> if result.success === true, \
+		-> insertTaskInSchedule(result)\
+		\
+	-> return result.success\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\fs28 \cf0 \
+\
+-> isEmpty()\
+	-> return firstTask === null\
+\
+-> isFull()\
+	-> return lastTask.endTime + BREAK_LENGTH >= END_OF_DAY\
+\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\fs26 \cf0 -> insertIntoSchedule(taskConfig)\
+	-> const newScheduledTask = new ScheduledTask(taskConfig)\
+	-> if newScheduledTask.task.startTime >= calendar.lastScheduledTask.endTime\
+		-> calendar.setLastScheduledTask(newScheduledTask)\
+\
+\
+findSlot(task)\
+\
+	-> if calendar.isEmpty() \
+		-> return \{success: true, task: task, startTime: 0, endTime: task.timeLength, previous: null, next: null\}\
+\
+	-> if task.isSubTask() && calendar.contains(task.parent)\
+		-> task.parent.findSubSlot (task)\
+\
+	-> let currentTask = firstTask\
+	-> \
+	-> while currentTask.hasNext() && !currentTask.hasTimeGapInMinutesBeforeNextTask(30) 		-> currentTask = currentTask.next\
+\
+	-> if !currentTask.hasNext()\
+		-> if endsTheDay(currentTask)\
+			-> unscheduledTasks.push(task)\
+			-> return \{success: false, task: null, startTime: null, endTime: null, previous: null, next: null\}\
+\
+		-> if enoughTimeLeftInTheDay(currentTask) \
+			-> return \{success: true, task: task, startTime: currentTask.endTime + BREAK_LENGTH, endTime: startTime + task.timeLength, previous: currentTask, next: null\}\
+\
+\
+	-> return \{success: false, \'85 \}\
+\
+\
+\
+\
+\
+-> contains(task)\
+	-> let currentTask = firstTask\
+	-> while currentTask.next !== null\
+		-> if currentTask.id === task.id\
+			-> return true\
+		-> currentTask = currentTask.next\
+\
+	-> return false\
+\
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\fs28 \cf0 \
+\
+-> scheduleDayWithUrgency (urgency)\
+	-> if day is full, return false\
+\
+	-> fetch tasks with current urgency, ordered by importance\
+	-> filter out habits. Resulting habits should still be in order of importance\
+	-> for each habit\
+		-> scheduleTask(habit)\
+		-> habit.setNextUrgency(task)\
+	-> remove task from yetToBeScheduledTasks array\
+	-> for each remaining task, \
+		-> scheduleTask( task)\
+	-> return true\
+\
+\
+-> scheduleDay()\
+	-> let currentUrgency = highestUrgency //should be a constant.\
+	-> let result = scheduleDayWithUrgency(currentUrgency)\
+	-> while result is true, \
+		-> result = scheduleDayWithUrgency(currentUrgency - 1)\
+		-> currentUrgency = currentUrgency - 1\
+\
+\
+-> enoughTimeLeftInTheDay(currentTask)\
+	-> return END_OF_DAY - currentTask.scheduledTime.end \
+\
+\
+\
+\
+\
+TASK OBJECT\
+\
+: vars\
+-> name\
+-> urgency\
+-> importance\
+-> analytics\
+-> labels\
+-> parent\
+-> preferredTimeRange, of type [startTime: int, endTime: int]\
+-> timeLength: int (between 1 and 1440 * whatever)\
+-> amtTimeCompleted: int\
+-> isCompleted: boolean\
+-> isHabit: boolean\
+\
+Methods:\
+-> constructor with setters for all member vars\
+\
+-> setters for all members vars\
+\
+-> isSubTask()\
+	-> return parent !== null\
+\
+\
+\
+\
+\
+\
+\
+\
+SCHEDULED TASK OBJECT\
+: vars\
+-> task, of type Task\
+-> scheduledTime: \{start: int, end: int\}\
+-> previousTask, of type ScheduledTask\
+-> nextTask, of type ScheduledTask\
+-> \
+\
+\
+: methods\
+-> constructor(Task, scheduledTimeRange, previousTask, nextTask)\
+\
+-> constructor(\{Task, startTime, endTime\})\
+\
+-> setPreviousTask(ScheduledTask)\
+\
+-> setNextTask(ScheduledTask)\
+\
+-> setTask(Task)\
+\
+-> deletePreviousTask()\
+	-> setPreviousTask(null)\
+\
+-> deleteNextTask()\
+	-> setNextTask(null)\
+\
+-> hasNext()\
+	-> return next !== null\
+\
+-> hasTimeGapBeforeNext(time)\
+	-> return scheduledTime.start - nextTask.scheduledTime.end >/=== time.\
+\
+\
+\
+}
